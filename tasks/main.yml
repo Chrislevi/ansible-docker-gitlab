@@ -1,8 +1,5 @@
 ---
 # tasks file for ansible-role-docker-gitlab
-
-- include: docker-reqs.yml
-
 - docker_container:
     name: "{{ gitlab_container_name }}"
     hostname: "{{ gitlab_container_name }}"
@@ -10,7 +7,6 @@
     state: started
     restart_policy: always
     restart: yes
-#    network_mode: "{{ gitlab_network_mode }}"
     published_ports:
     - "{{ gitlab_http_port }}"
     - "{{ gitlab_https_port }}"
@@ -20,6 +16,8 @@
     - "{{ gitlab_volume_log }}"
     - "{{ gitlab_volume_data }}"
 
+- name: "Populate gitlab from {{ gitlab_code_dir }}"
+  include: gitlab-populate.yml
 
 #- name: "Create Gitlab Group"
 #  local_action: gitlab_group
