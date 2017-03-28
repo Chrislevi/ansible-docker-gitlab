@@ -1,8 +1,8 @@
 ---
 # defaults file for ansible-role-docker-gitlab
 
-gitlab_default_port: 7080
-gitlab_container_name: gitlab-ce
+gitlab_default_port: "{{ ostkl_svc.gitlab.port | d('7080') }}"
+gitlab_container_name: gitlab
 
 # Docker systemd service params
 gitlab_description: "GitLab community edition"
@@ -18,18 +18,19 @@ gitlab_volume_data: "/srv/gitlab/data:/var/opt/gitlab"
 
 
 #Gitlab Code injection vars
-gitlab_hostname: "gitlab-ce"
+gitlab_hostname: "localhost"
 gitlab_user: "root"
 gitlab_group: "root"
-gitlab_pass: "rootroot"
+gitlab_pass: "password"
 gitlab_code_dir: "/opt/git"
 
 gitlab_ssh: "{{ gitlab_ssh_port.split(':')[0] }}"
 gitlab_http: "{{ gitlab_default_port }}"
 
 external_code:
-  - ceph
-  - roles/jenkins
-  - roles/nexus
-  - roles/juseppe
-  - roles/simple-docker-daemon
+  - { name: "ceph", path: "" }
+  - { name: "jenkins", path: "/roles" }
+  - { name: "nexus", path: "/roles" }
+  - { name: "juseppe", path: "/roles" }
+  - { name: "simple-docker-daemon", path: "/roles" }
+  # - { name: "OSTK-playbook", path: "" } # Offline installation, place OSTKL in gitlab_code_dir

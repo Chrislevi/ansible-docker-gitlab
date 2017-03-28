@@ -1,5 +1,7 @@
 ---
-# tasks file for ansible-role-docker-gitlab
+#- shell: rm -rf /srv/gitlab; docker kill gitlab # Purge flow
+#  ignore_errors: true
+
 - docker_container:
     name: "{{ gitlab_container_name }}"
     hostname: "{{ gitlab_container_name }}"
@@ -16,15 +18,25 @@
     - "{{ gitlab_volume_log }}"
     - "{{ gitlab_volume_data }}"
 
+- name: "Wait for gitlab http port - takes time.."
+  uri:
+    url: "http://{{ gitlab_hostname }}:{{ gitlab_default_port }}"
+    status_code: 200
+  register: gitlab_page
+  until: gitlab_page.status == 200
+  retries: 30
+  delay: 5
+
+- name: "Chmod gitlab logs"
+  shell: "docker exec -u root {{ gitlab_container_name }} chmod 0664 /opt/gitlab/embedded/service/gitlab-rails/log/production.log"
+  register: success
+  until: success.rc == 0
+  retries: 10
+  delay: 2
+
+- name: "Initialize Gitlab DB"
+  shell: "docker exec -i -u git {{ gitlab_container_name }} gitlab-rake gitlab:setup RAILS_ENV=production GITLAB_ROOT_PASSWORD={{ gitlab_pass }} GITLAB_ROOT_EMAIL=admin@example.com force=yes"
+
 - name: "Populate gitlab from {{ gitlab_code_dir }}"
   include: gitlab-populate.yml
-
-#- name: "Create Gitlab Group"
-#  local_action: gitlab_group
-#                server_url="https://localhost:8443"
-#                validate_certs=false
-#                login_user=root
-#                login_password=rootroot
-#                name=OSTKL2
-#                path=OSTKL2
-#                state=present
+  tags: codepush

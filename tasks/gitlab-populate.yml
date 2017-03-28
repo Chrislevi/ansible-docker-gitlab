@@ -1,4 +1,25 @@
 ---
+- name: "Install python-module"
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  - python-pip
+  - python-pexpect
+
+- name: "Upgrade pip"
+  pip:
+    name: pip
+    extra_args: "--upgrade"
+
+- name: "Install docker-py"
+  pip:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - docker-py
+    - python-gitlab
+
 - name: "Deploy init-ptoken.py"
   template:
     src: "{{ item }}.j2"
@@ -27,15 +48,23 @@
   - python-gitlab.cfg
 
 - name: "Create projects"
-  shell: "gitlab -g gitlab project create --name {{ item }}"
+  shell: "gitlab -g gitlab project create --name {{ item.name }}"
+  with_items:
+  - "{{ external_code }}"
+
+- name: "Reconfigure origin ref"
+  shell: "cd {{ gitlab_code_dir }}{{ item.path }}/{{ item.name }} && \
+          git remote rm origin && \
+          git remote add origin ssh://git@{{ gitlab_hostname }}:{{ gitlab_ssh }}/root/{{ item.name }}.git"
   with_items:
   - "{{ external_code }}"
 
 - name: "Push code"
-  shell: "cd {{ gitlab_code_dir }}/{{ item }}/ && \
-          git remote rm origin && \
-          git remote add origin ssh://git@{{ gitlab_hostname }}:{{ gitlab_ssh_port }}/root/{{ item }}.git && \
-          git push origin master"
+  expect:
+    command: "git push origin master"
+    chdir: "{{ gitlab_code_dir }}{{ item.path }}/{{ item.name }}"
+    responses:
+      (?i)fingerprint: "yes"
   with_items:
   - "{{ external_code }}"
 
